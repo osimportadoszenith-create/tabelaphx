@@ -275,7 +275,7 @@ a.product-row:active,.product-row:active{background:rgba(224,26,34,.12)}
 </head>
 <body id="topo">
   <div class="cover" id="capa">
-    <video class="cover-img" src="PAGINAS/HEAD.mp4" autoplay muted loop playsinline preload="auto"></video>
+    <video id="coverVideo" class="cover-img" src="PAGINAS/VIDEO HEAD.mp4" autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback></video>
     <img class="cover-img" src="PAGINAS/PAGINA 2.png" alt="">
     
     <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-controls="infoOverlay">
@@ -7168,6 +7168,29 @@ window.addEventListener("hashchange", abrirCategoriaDoLink);
   nav.addEventListener('scroll',update,{passive:true});
   window.addEventListener('resize',update);
   update();
+})();
+</script>
+<script>
+(function(){
+  var v=document.getElementById('coverVideo');
+  if(!v) return;
+  v.muted=true; v.setAttribute('muted','');
+  v.defaultMuted=true; v.playsInline=true;
+  function tryPlay(){
+    if(!v.paused) return;
+    var p=v.play();
+    if(p&&p.catch) p.catch(function(){});
+  }
+  // Tenta assim que possível e conforme o vídeo fica pronto
+  ['loadeddata','canplay','canplaythrough'].forEach(function(ev){ v.addEventListener(ev,tryPlay); });
+  tryPlay();
+  window.addEventListener('load',tryPlay);
+  window.addEventListener('pageshow',tryPlay);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) tryPlay(); });
+  // Fallback: primeira interação do usuário destrava a reprodução
+  ['touchstart','pointerdown','click','scroll','keydown'].forEach(function(ev){
+    window.addEventListener(ev,function h(){ tryPlay(); }, {passive:true});
+  });
 })();
 </script>
 </body>
