@@ -220,7 +220,8 @@ a.product-row:active,.product-row:active{background:rgba(224,26,34,.12)}
 <style id="cover-styles">
 .cover{max-width:var(--maxw);margin:0 auto;display:block;background:#000}
 .cover-img{display:block;width:100%;height:auto}
-.info-btn{display:block;width:100%;max-width:var(--maxw);margin:0 auto;padding:0;border:0;background:none;cursor:pointer;line-height:0;touch-action:manipulation;-webkit-appearance:button}
+@keyframes info-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.info-btn{display:block;width:100%;max-width:var(--maxw);margin:0 auto;padding:0;border:0;background:none;cursor:pointer;line-height:0;touch-action:manipulation;-webkit-appearance:button;animation:info-pulse 3s ease-in-out infinite;transform-origin:center}
 .info-btn img{display:block;width:100%;height:auto;transition:filter .18s ease,transform .12s ease}
 .info-btn:hover img{filter:brightness(1.08)}
 .info-btn:active img{transform:scale(.99)}
