@@ -224,6 +224,10 @@ a.product-row:active,.product-row:active{background:rgba(224,26,34,.12)}
 <style id="cover-styles">
 .cover{max-width:var(--maxw);margin:0 auto;display:block;background:#000}
 .cover-img{display:block;width:100%;height:auto}
+#introOverlay{position:fixed;inset:0;z-index:99999;background:#0a0000;overflow:hidden;animation:intro-out 2.4s cubic-bezier(.4,0,.2,1) forwards;will-change:opacity,filter,transform}
+#introOverlay img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+@keyframes intro-out{0%,42%{opacity:1;filter:blur(0);transform:scale(1)}100%{opacity:0;filter:blur(30px);transform:scale(1.07);visibility:hidden;pointer-events:none}}
+@media (prefers-reduced-motion:reduce){#introOverlay{animation:intro-fade 0.7s ease forwards}@keyframes intro-fade{0%{opacity:1}100%{opacity:0;visibility:hidden;pointer-events:none}}}
 @keyframes info-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 .info-btn{display:block;width:100%;max-width:var(--maxw);margin:0 auto;padding:0;border:0;background:none;cursor:pointer;line-height:0;touch-action:manipulation;-webkit-appearance:button;animation:info-pulse 3s ease-in-out infinite;transform-origin:center}
 .info-btn img{display:block;width:100%;height:auto;transition:filter .18s ease,transform .12s ease}
@@ -274,6 +278,7 @@ a.product-row:active,.product-row:active{background:rgba(224,26,34,.12)}
 </style>
 </head>
 <body id="topo">
+  <div id="introOverlay"><img src="PAGINAS/FADE.png" alt=""></div>
   <div class="cover" id="capa">
     <video id="coverVideo" class="cover-img" src="PAGINAS/VIDEO HEAD.mp4" autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback></video>
     <img class="cover-img" src="PAGINAS/PAGINA 2.png" alt="">
@@ -7168,6 +7173,15 @@ window.addEventListener("hashchange", abrirCategoriaDoLink);
   nav.addEventListener('scroll',update,{passive:true});
   window.addEventListener('resize',update);
   update();
+})();
+</script>
+<script>
+(function(){
+  var o=document.getElementById('introOverlay');
+  if(!o) return;
+  function done(){ if(o&&o.parentNode) o.parentNode.removeChild(o); }
+  o.addEventListener('animationend', done, {once:true});
+  setTimeout(done, 3200);
 })();
 </script>
 <script>
