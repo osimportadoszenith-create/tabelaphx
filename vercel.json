@@ -4,21 +4,20 @@
       "includeFiles": "TABELAPHX.html"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/:token",
-      "destination": "/api/private?token=:token"
-    }
-  ],
-  "headers": [
+      "src": "/py/?",
+      "dest": "/api/private?token=py",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive"
+      }
+    },
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
+      "src": "/.*",
+      "status": 404,
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive"
+      }
     }
   ]
 }
