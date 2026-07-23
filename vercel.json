@@ -1,3 +1,24 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/TABELAPHX.html" }]
+  "functions": {
+    "api/private.js": {
+      "includeFiles": "TABELAPHX.html"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/:token",
+      "destination": "/api/private?token=:token"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    }
+  ]
 }
