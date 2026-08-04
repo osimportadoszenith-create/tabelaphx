@@ -2,9 +2,20 @@
   "functions": {
     "api/private.js": {
       "includeFiles": "TABELAPHX.html"
+    },
+    "api/catalog-sync.js": {
+      "maxDuration": 20
     }
   },
   "routes": [
+    {
+      "src": "/py/catalog\\.json/?",
+      "dest": "/api/catalog-sync?token=py",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "Cache-Control": "private, no-store, max-age=0"
+      }
+    },
     {
       "src": "/py/?",
       "dest": "/api/private?token=py",
