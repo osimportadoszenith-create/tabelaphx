@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 
 const CURE_CATALOG_URL = "https://curepharmaceuticalspy.com/";
 const MIN_EXPECTED_PRODUCTS = 100;
+const AVAILABILITY_SYNC_ENABLED = false;
 let cachedCatalog = null;
 let cacheExpiresAt = 0;
 let inFlightRequest = null;
@@ -118,6 +119,7 @@ function normalizeProduct(product) {
     displayBrand: optionalString(product.displayBrand) || String(product.brand).trim(),
     name: String(product.name || "").trim(),
     presentation: optionalString(product.presentation),
+    descriptionText: optionalString(product.descriptionText),
     finalPrice: Number(product.finalPrice),
     status: String(product.status || "inactive").trim().toLowerCase(),
     sortOrder: Number.isFinite(Number(product.sortOrder))
@@ -128,19 +130,20 @@ function normalizeProduct(product) {
 }
 
 function catalogVersion(products) {
-  const relevantData = products.map((product) => [
-    product.id,
-    product.category,
-    product.group,
-    product.brand,
-    product.displayBrand,
-    product.name,
-    product.presentation,
-    product.finalPrice,
-    product.status,
-    product.sortOrder,
-    product.isDeleted,
-  ]);
+  const relevantData = products.map((product) => {
+    const fields = [
+      product.id,
+      product.category,
+      product.group,
+      product.presentation,
+      product.descriptionText,
+      product.finalPrice,
+      product.isDeleted,
+    ];
+
+    if (AVAILABILITY_SYNC_ENABLED) fields.push(product.status);
+    return fields;
+  });
 
   return crypto
     .createHash("sha256")
@@ -213,6 +216,7 @@ async function getCureCatalog(options = {}) {
 }
 
 module.exports = {
+  AVAILABILITY_SYNC_ENABLED,
   CURE_CATALOG_URL,
   catalogVersion,
   extractProductsFromHtml,

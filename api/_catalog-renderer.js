@@ -1,3 +1,5 @@
+const { AVAILABILITY_SYNC_ENABLED } = require("./_cure-catalog");
+
 const CATEGORY_CONFIG = [
   {
     id: "premium",
@@ -28,10 +30,7 @@ const CATEGORY_CONFIG = [
 
 const SYNC_STYLE = `
 <style id="cure-catalog-sync-styles">
-  .product-row.is-unavailable{opacity:.62;background:rgba(224,26,34,.08)}
-  .product-row.is-unavailable .name,.product-row.is-unavailable .sub{text-decoration:line-through}
-  .product-price-status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
-  .availability-status{font-family:var(--display);font-size:9px;font-weight:800;letter-spacing:.12em;color:#ff5b60;text-transform:uppercase}
+  .product-info .cure-description{display:block;margin-top:4px;color:#a9a1a1;font-size:10px;line-height:1.45;letter-spacing:.03em;white-space:pre-line}
   .catalog-sync-warning{margin:10px 0;padding:9px 12px;border:1px solid rgba(224,26,34,.45);color:#ff8a8f;font-size:11px;text-align:center}
 </style>`;
 
@@ -139,19 +138,28 @@ function extractLogoClasses(html) {
 }
 
 function renderProduct(product) {
-  const unavailable = product.status !== "active";
+  const unavailable =
+    AVAILABILITY_SYNC_ENABLED && product.status !== "active";
   const presentation = product.presentation
     ? `<span class="sub">${escapeHtml(product.presentation)}</span>`
+    : "";
+  const description = product.descriptionText
+    ? `<span class="cure-description">${escapeHtml(product.descriptionText)}</span>`
     : "";
   const price = `<span class="price">${escapeHtml(formatPrice(product.finalPrice))}</span>`;
   const priceColumn = unavailable
     ? `<span class="product-price-status">${price}<span class="availability-status">INDISPONÍVEL</span></span>`
     : price;
 
-  return `            <li class="product-row${unavailable ? " is-unavailable" : ""}" data-cure-id="${escapeHtml(product.id)}" data-cure-status="${escapeHtml(product.status)}">
+  const statusAttribute = AVAILABILITY_SYNC_ENABLED
+    ? ` data-cure-status="${escapeHtml(product.status)}"`
+    : "";
+
+  return `            <li class="product-row${unavailable ? " is-unavailable" : ""}" data-cure-id="${escapeHtml(product.id)}"${statusAttribute}>
                 <div class="product-info">
                   <span class="name">${escapeHtml(product.name)}</span>
                   ${presentation}
+                  ${description}
                 </div>
                 ${priceColumn}
               </li>`;

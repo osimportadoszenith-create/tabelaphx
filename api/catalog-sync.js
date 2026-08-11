@@ -1,5 +1,8 @@
 const { hasPrivateAccess } = require("./_private-auth");
-const { getCureCatalog } = require("./_cure-catalog");
+const {
+  AVAILABILITY_SYNC_ENABLED,
+  getCureCatalog,
+} = require("./_cure-catalog");
 
 module.exports = async function handler(request, response) {
   response.setHeader("Cache-Control", "private, no-store, max-age=0");
@@ -20,7 +23,14 @@ module.exports = async function handler(request, response) {
       fetchedAt: catalog.fetchedAt,
       stale: Boolean(catalog.stale),
       products: products.length,
-      unavailable: products.filter((product) => product.status !== "active").length,
+      availabilitySync: AVAILABILITY_SYNC_ENABLED,
+      syncedFields: [
+        "finalPrice",
+        "presentation",
+        "descriptionText",
+        "category",
+        "group",
+      ],
     });
   } catch (error) {
     console.error("CURE catalog version check failed:", error);

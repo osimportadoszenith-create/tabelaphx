@@ -2,7 +2,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { fetchCureCatalog } = require("../api/_cure-catalog");
+const catalogSyncHandler = require("../api/catalog-sync");
+const {
+  AVAILABILITY_SYNC_ENABLED,
+  catalogVersion,
+  fetchCureCatalog,
+} = require("../api/_cure-catalog");
 const {
   CATEGORY_CONFIG,
   applyCureCatalogToHtml,
@@ -14,6 +19,26 @@ function detailsBlock(html, id) {
   assert.notEqual(start, -1, `Categoria ${id} ausente.`);
   assert.notEqual(end, -1, `Categoria ${id} incompleta.`);
   return html.slice(start, end + "</details>".length);
+}
+
+function captureResponse() {
+  return {
+    body: null,
+    headers: {},
+    statusCode: 200,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    setHeader(name, value) {
+      this.headers[name] = value;
+      return this;
+    },
+    json(value) {
+      this.body = value;
+      return this;
+    },
+  };
 }
 
 async function main() {
@@ -41,6 +66,21 @@ async function main() {
     detailsBlock(originalHtml, "phenix"),
     "A categoria PHENIX LABS foi alterada.",
   );
+  const endpointResponse = captureResponse();
+  await catalogSyncHandler(
+    { query: { token: process.env.PRIVATE_ACCESS_TOKEN || "py" } },
+    endpointResponse,
+  );
+  assert.equal(endpointResponse.statusCode, 200);
+  assert.equal(endpointResponse.body.availabilitySync, false);
+  assert.equal("unavailable" in endpointResponse.body, false);
+  assert.deepEqual(endpointResponse.body.syncedFields, [
+    "finalPrice",
+    "presentation",
+    "descriptionText",
+    "category",
+    "group",
+  ]);
 
   const selectedProduct = sourceProducts.find(
     (product) =>
@@ -63,6 +103,8 @@ async function main() {
             ...product,
             category: "MARCAS PREMIUM",
             group: "INJETÁVEIS",
+            presentation: "APRESENTAÇÃO SINCRONIZADA",
+            descriptionText: "DESCRIÇÃO SINCRONIZADA",
             finalPrice: 2999,
             status: "inactive",
           }
@@ -81,9 +123,27 @@ async function main() {
   assert.match(
     simulatedPremium,
     new RegExp(
-      `class="product-row is-unavailable" data-cure-id="${selectedProduct.id}"[\\s\\S]{0,600}?R\\$\\s*2\\.999,00[\\s\\S]{0,200}?INDISPONÍVEL`,
+      `class="product-row" data-cure-id="${selectedProduct.id}"[\\s\\S]{0,600}?APRESENTAÇÃO SINCRONIZADA[\\s\\S]{0,300}?DESCRIÇÃO SINCRONIZADA[\\s\\S]{0,300}?R\\$\\s*2\\.999,00`,
     ),
-    "Preço, categoria ou indisponibilidade simulados não foram refletidos.",
+    "Preço, descrição ou categoria simulados não foram refletidos.",
+  );
+  assert.doesNotMatch(
+    simulatedPremium,
+    /is-unavailable|data-cure-status|INDISPONÍVEL/,
+    "A disponibilidade foi renderizada mesmo estando desativada.",
+  );
+  const statusOnlyProducts = catalog.products.map((product) =>
+    product.id === selectedProduct.id
+      ? {
+          ...product,
+          status: product.status === "active" ? "out_of_stock" : "active",
+        }
+      : product,
+  );
+  assert.equal(
+    catalogVersion(catalog.products),
+    catalogVersion(statusOnlyProducts),
+    "Uma mudança apenas de status alterou a versão sincronizada.",
   );
   assert.equal(
     detailsBlock(simulatedHtml, "phenix"),
@@ -99,8 +159,6 @@ async function main() {
         {
           products: (block.match(/data-cure-id=/g) || []).length,
           brands: (block.match(/data-cure-brand=/g) || []).length,
-          unavailable: (block.match(/data-cure-status="(?!active)[^"]+"/g) || [])
-            .length,
         },
       ];
     }),
@@ -113,8 +171,7 @@ async function main() {
         version: catalog.version,
         fetchedAt: catalog.fetchedAt,
         products: sourceProducts.length,
-        unavailable: sourceProducts.filter((product) => product.status !== "active")
-          .length,
+        availabilitySync: AVAILABILITY_SYNC_ENABLED,
         categories,
         phenixLabsProtected: true,
         sentinel: {
@@ -124,7 +181,8 @@ async function main() {
         simulatedChanges: {
           price: true,
           category: true,
-          unavailableStatus: true,
+          description: true,
+          availabilityDisabled: true,
           phenixLabsProtected: true,
         },
       },
