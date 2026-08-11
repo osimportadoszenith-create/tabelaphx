@@ -28,8 +28,13 @@ const CATEGORY_CONFIG = [
   },
 ];
 
+const DISPLAY_BRAND_OVERRIDES = new Map([
+  ["farmacia|GH", "GH"],
+]);
+
 const SYNC_STYLE = `
 <style id="cure-catalog-sync-styles">
+  .product-info .cure-visual-brand{display:block;margin-top:4px;color:#ff6b72;font-size:10px;line-height:1.3;letter-spacing:.08em;text-transform:uppercase}
   .product-info .cure-description{display:block;margin-top:4px;color:#a9a1a1;font-size:10px;line-height:1.45;letter-spacing:.03em;white-space:pre-line}
   .catalog-sync-warning{margin:10px 0;padding:9px 12px;border:1px solid rgba(224,26,34,.45);color:#ff8a8f;font-size:11px;text-align:center}
 </style>`;
@@ -143,6 +148,10 @@ function renderProduct(product) {
   const presentation = product.presentation
     ? `<span class="sub">${escapeHtml(product.presentation)}</span>`
     : "";
+  const visualBrand =
+    normalize(product.brand) === "GH" && product.displayBrand
+      ? `<span class="cure-visual-brand">Marca: ${escapeHtml(product.displayBrand)}</span>`
+      : "";
   const description = product.descriptionText
     ? `<span class="cure-description">${escapeHtml(product.descriptionText)}</span>`
     : "";
@@ -159,6 +168,7 @@ function renderProduct(product) {
                 <div class="product-info">
                   <span class="name">${escapeHtml(product.name)}</span>
                   ${presentation}
+                  ${visualBrand}
                   ${description}
                 </div>
                 ${priceColumn}
@@ -166,7 +176,11 @@ function renderProduct(product) {
 }
 
 function renderBrandCard(config, brand, products, logoClasses) {
-  const displayBrand = products.find((product) => product.displayBrand)?.displayBrand || brand;
+  const sourceDisplayBrand =
+    products.find((product) => product.displayBrand)?.displayBrand || brand;
+  const displayBrand =
+    DISPLAY_BRAND_OVERRIDES.get(`${config.id}|${normalize(brand)}`) ||
+    sourceDisplayBrand;
   const logoClass =
     logoClasses.get(`${config.id}|${normalize(brand)}`) || "logo-variados";
   const productsByGroup = new Map();

@@ -135,6 +135,7 @@ function catalogVersion(products) {
       product.id,
       product.category,
       product.group,
+      product.displayBrand,
       product.presentation,
       product.descriptionText,
       product.finalPrice,

@@ -28,6 +28,7 @@ module.exports = async function handler(request, response) {
         "finalPrice",
         "presentation",
         "descriptionText",
+        "displayBrand",
         "category",
         "group",
       ],

@@ -66,6 +66,43 @@ async function main() {
     detailsBlock(originalHtml, "phenix"),
     "A categoria PHENIX LABS foi alterada.",
   );
+  const pharmacyBlock = detailsBlock(renderedHtml, "farmacia");
+  const ghBrandSection = pharmacyBlock.match(
+    /<section class="brand-card" id="farmacia-gh"[\s\S]*?<\/section>/,
+  )?.[0];
+  assert(ghBrandSection, "A marca GH não foi encontrada em Farmácia.");
+  assert.match(
+    ghBrandSection,
+    /<span class="brand-kicker-name">\d+ PRODUTOS? - GH<\/span>/,
+    "O cabeçalho da marca GH não foi aplicado.",
+  );
+  assert.doesNotMatch(
+    ghBrandSection,
+    /brand-kicker-name">[^<]*BERGAMO/i,
+    "O nome BERGAMO ainda aparece no cabeçalho da marca GH.",
+  );
+  const ghProducts = sourceProducts.filter(
+    (product) => String(product.brand || "").trim().toUpperCase() === "GH",
+  );
+  assert(
+    ghProducts.every((product) => product.displayBrand),
+    "Existe produto GH sem Marca visual na fonte CURE.",
+  );
+  assert.equal(
+    (ghBrandSection.match(/class="cure-visual-brand"/g) || []).length,
+    ghProducts.length,
+    "Nem todos os produtos GH exibem a Marca visual.",
+  );
+  const gh100 = ghProducts.find(
+    (product) => product.id === "farmacia-gh-gh-100ui-frasco",
+  );
+  assert(gh100, "Produto sentinela GH 100ui não encontrado.");
+  assert.equal(gh100.displayBrand, "NEUROCEPTIX");
+  assert.match(
+    ghBrandSection,
+    /data-cure-id="farmacia-gh-gh-100ui-frasco"[\s\S]{0,700}?Marca: NEUROCEPTIX[\s\S]{0,400}?R\$\s*1\.550,00/,
+    "Marca visual ou preço do GH 100ui não foi aplicado.",
+  );
   const endpointResponse = captureResponse();
   await catalogSyncHandler(
     { query: { token: process.env.PRIVATE_ACCESS_TOKEN || "py" } },
@@ -78,6 +115,7 @@ async function main() {
     "finalPrice",
     "presentation",
     "descriptionText",
+    "displayBrand",
     "category",
     "group",
   ]);
