@@ -5,9 +5,19 @@
     },
     "api/catalog-sync.js": {
       "maxDuration": 20
+    },
+    "api/public-asset.js": {
+      "includeFiles": "PAGINAS/**"
     }
   },
   "routes": [
+    {
+      "src": "/PAGINAS/(.*)",
+      "dest": "/api/public-asset?file=$1",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      }
+    },
     {
       "src": "/py/catalog\\.json/?",
       "dest": "/api/catalog-sync?token=py",
