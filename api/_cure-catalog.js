@@ -130,6 +130,12 @@ function normalizeProduct(product) {
   };
 }
 
+function isExcludedBrand(product) {
+  return [product.brand, product.displayBrand].some((brand) =>
+    /^ONE1(?:\s+PHARMA)?$/i.test(String(brand || "").trim()),
+  );
+}
+
 function catalogVersion(products, freight = []) {
   const relevantData = products.map((product) => {
     const fields = [
@@ -175,9 +181,9 @@ async function fetchCureCatalog(options = {}) {
       throw new Error(`Catálogo CURE respondeu HTTP ${response.status}.`);
     }
 
-    const products = extractProductsFromHtml(await response.text()).map(
-      normalizeProduct,
-    );
+    const products = extractProductsFromHtml(await response.text())
+      .map(normalizeProduct)
+      .filter((product) => !isExcludedBrand(product));
     const freight = await fetchCureFreight({ fetchImpl, signal: controller.signal });
 
     return {

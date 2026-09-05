@@ -7,7 +7,9 @@ const catalogSyncHandler = require("../api/catalog-sync");
 const {
   AVAILABILITY_SYNC_ENABLED,
   catalogVersion,
+  extractProductsFromHtml,
   fetchCureCatalog,
+  normalizeProduct,
 } = require("../api/_cure-catalog");
 const {
   CATEGORY_CONFIG,
@@ -45,8 +47,24 @@ function captureResponse() {
 async function main() {
   const pagePath = path.join(process.cwd(), "TABELAPHX.html");
   const originalHtml = fs.readFileSync(pagePath, "utf8");
-  const catalog = await fetchCureCatalog();
+  let sourceHtml;
+  const catalog = await fetchCureCatalog({
+    fetchImpl: async (url, options) => {
+      const response = await fetch(url, options);
+      if (url === "https://curepharmaceuticalspy.com/") {
+        sourceHtml = await response.clone().text();
+      }
+      return response;
+    },
+  });
+  const originalProducts = extractProductsFromHtml(sourceHtml).map(normalizeProduct);
+  const excluded = (product) => [product.brand, product.displayBrand].some(
+    (brand) => /^ONE1(?:\s+PHARMA)?$/i.test(String(brand || "").trim()),
+  );
+  assert.deepEqual(catalog.products, originalProducts.filter((product) => !excluded(product)),
+    "Somente a marca ONE1 deve ser removida; os demais produtos devem permanecer iguais.");
   const renderedHtml = applyCureCatalogToHtml(originalHtml, catalog);
+  assert.doesNotMatch(renderedHtml, /ONE1/i, "ONE1 ainda aparece no catálogo PHX.");
   assert.equal(catalog.freight.length, 27);
   assert.equal(endpointFreightCount(renderedHtml), 27);
   for (const { uf, values } of catalog.freight) {
