@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const { CURE_FREIGHT_URL, fetchCureFreight } = require("./_cure-freight");
 
 const CURE_CATALOG_URL = "https://curepharmaceuticalspy.com/";
 const MIN_EXPECTED_PRODUCTS = 100;
@@ -129,7 +130,7 @@ function normalizeProduct(product) {
   };
 }
 
-function catalogVersion(products) {
+function catalogVersion(products, freight = []) {
   const relevantData = products.map((product) => {
     const fields = [
       product.id,
@@ -148,7 +149,7 @@ function catalogVersion(products) {
 
   return crypto
     .createHash("sha256")
-    .update(JSON.stringify(relevantData))
+    .update(JSON.stringify([relevantData, freight]))
     .digest("hex")
     .slice(0, 16);
 }
@@ -177,11 +178,14 @@ async function fetchCureCatalog(options = {}) {
     const products = extractProductsFromHtml(await response.text()).map(
       normalizeProduct,
     );
+    const freight = await fetchCureFreight({ fetchImpl, signal: controller.signal });
 
     return {
       source: url,
       fetchedAt: new Date().toISOString(),
-      version: catalogVersion(products),
+      version: catalogVersion(products, freight),
+      freightSource: CURE_FREIGHT_URL,
+      freight,
       products,
     };
   } finally {

@@ -24,6 +24,8 @@ module.exports = async function handler(request, response) {
       stale: Boolean(catalog.stale),
       products: products.length,
       availabilitySync: AVAILABILITY_SYNC_ENABLED,
+      freightSource: catalog.freightSource,
+      freightStates: catalog.freight.length,
       syncedFields: [
         "finalPrice",
         "presentation",
@@ -31,6 +33,7 @@ module.exports = async function handler(request, response) {
         "displayBrand",
         "category",
         "group",
+        "freight",
       ],
     });
   } catch (error) {

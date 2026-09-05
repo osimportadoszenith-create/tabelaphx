@@ -326,12 +326,31 @@ function applyCureCatalogToHtml(html, catalog) {
     renderedHtml = replaceCategory(renderedHtml, config, products, logoClasses);
   }
 
+  renderedHtml = applyCureFreightToHtml(renderedHtml, catalog.freight);
   return injectCatalogSyncAssets(renderedHtml, catalog.version);
+}
+
+function applyCureFreightToHtml(html, freight) {
+  if (!Array.isArray(freight) || freight.length !== 27) {
+    throw new Error("Dados inválidos para renderizar os fretes sincronizados.");
+  }
+  const details = findDetailsBlock(html, "frete");
+  let block = details.block;
+  for (const { uf, values } of freight) {
+    const pattern = new RegExp(`(<div class="frete-result-panel" data-uf="${uf}">)\\s*(?:<div><span>[^<]*</span><strong>[^<]*</strong></div>\\s*){3}`);
+    if (!pattern.test(block)) throw new Error(`Painel de frete ausente: ${uf}.`);
+    const cards = [["sedex", "Sedex"], ["pac", "PAC"], ["transportadora", "Transportadora"]]
+      .map(([mode, label]) => `<div><span>${label}</span><strong>${values[mode] == null ? "Consultar" : escapeHtml(formatPrice(values[mode]))}</strong></div>`)
+      .join("\n            ");
+    block = block.replace(pattern, (_, opening) => `${opening}\n            ${cards}\n          `);
+  }
+  return `${html.slice(0, details.start)}${block}${html.slice(details.end)}`;
 }
 
 module.exports = {
   CATEGORY_CONFIG,
   applyCureCatalogToHtml,
+  applyCureFreightToHtml,
   formatPrice,
   injectCatalogSyncAssets,
   normalize,

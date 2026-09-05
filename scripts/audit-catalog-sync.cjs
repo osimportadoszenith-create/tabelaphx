@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { extractFreightFromScript } = require("../api/_cure-freight");
 
 const catalogSyncHandler = require("../api/catalog-sync");
 const {
@@ -46,6 +47,24 @@ async function main() {
   const originalHtml = fs.readFileSync(pagePath, "utf8");
   const catalog = await fetchCureCatalog();
   const renderedHtml = applyCureCatalogToHtml(originalHtml, catalog);
+  assert.equal(catalog.freight.length, 27);
+  assert.equal(endpointFreightCount(renderedHtml), 27);
+  for (const { uf, values } of catalog.freight) {
+    const panel = renderedHtml.match(new RegExp(`data-uf="${uf}">([\\s\\S]*?)\\n          </div>`))?.[1];
+    assert(panel, `Frete ${uf} ausente.`);
+    const actual = [...panel.matchAll(/<strong>([^<]*)<\/strong>/g)].map((m) => m[1]);
+    const expected = ["sedex", "pac", "transportadora"].map((mode) => values[mode] == null ? "Consultar" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(values[mode]));
+    assert.deepEqual(actual, expected, `Frete ${uf} diferente da fonte.`);
+  }
+  const changedFreight = catalog.freight.map((row, index) => index ? row : { ...row, values: { ...row.values, sedex: 123.45 } });
+  assert.notEqual(catalogVersion(catalog.products, catalog.freight), catalogVersion(catalog.products, changedFreight));
+  const changedHtml = applyCureCatalogToHtml(originalHtml, { ...catalog, freight: changedFreight });
+  assert.match(detailsBlock(changedHtml, "frete"), /R\$\s*123,45/);
+  const fixture = catalog.freight.map(({ uf, values }) => `{uf:"${uf}",name:"Estado",aliases:[],values:{${Object.entries(values).filter(([, value]) => value !== null).map(([key, value]) => `${key}:${value}`).join(",")}}}`).join(",");
+  assert.deepEqual(extractFreightFromScript(`[${fixture}]`), catalog.freight);
+  assert.throws(() => extractFreightFromScript("[]"));
+  assert.throws(() => extractFreightFromScript(fixture.replace('uf:"AL"', 'uf:"AC"')));
+  assert.throws(() => extractFreightFromScript(fixture.replace(/sedex:\d+/, "sedex:-1")));
   const sourceProducts = catalog.products.filter((product) => !product.isDeleted);
   const renderedIds = [
     ...renderedHtml.matchAll(/data-cure-id="([^"]+)"/g),
@@ -118,6 +137,7 @@ async function main() {
     "displayBrand",
     "category",
     "group",
+    "freight",
   ]);
 
   const selectedProduct = sourceProducts.find(
@@ -209,6 +229,8 @@ async function main() {
         version: catalog.version,
         fetchedAt: catalog.fetchedAt,
         products: sourceProducts.length,
+        freightStates: catalog.freight.length,
+        freightChangeDetected: true,
         availabilitySync: AVAILABILITY_SYNC_ENABLED,
         categories,
         phenixLabsProtected: true,
@@ -228,6 +250,10 @@ async function main() {
       2,
     ),
   );
+}
+
+function endpointFreightCount(html) {
+  return (detailsBlock(html, "frete").match(/class="frete-result-panel"/g) || []).length;
 }
 
 main().catch((error) => {
