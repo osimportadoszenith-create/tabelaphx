@@ -78,6 +78,10 @@ async function main() {
   assert.equal(detailsBlock(logoChangedHtml, "farmacia"), detailsBlock(renderedHtml, "farmacia"),
     "As logos da categoria Farmácia devem permanecer fixas.");
   assert.equal(detailsBlock(logoChangedHtml, "phenix"), detailsBlock(originalHtml, "phenix"));
+  const variadosLogo = (html) => html.match(/id="emagrecedores-variados"[\s\S]*?<\/section>/)?.[0];
+  assert.match(variadosLogo(renderedHtml) || "", /src="\/PAGINAS\/PHX%20BLACK.svg" alt="PHX"/);
+  assert.equal(variadosLogo(logoChangedHtml), variadosLogo(renderedHtml),
+    "VARIADOS em Emagrecedores deve manter a logo PHX mesmo quando a fonte mudar.");
   assert.equal(catalog.freight.length, 27);
   assert.equal(endpointFreightCount(renderedHtml), 27);
   for (const { uf, values } of catalog.freight) {

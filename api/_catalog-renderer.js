@@ -184,8 +184,11 @@ function renderBrandCard(config, brand, products, logoClasses, brandLogos) {
     sourceDisplayBrand;
   const logoClass =
     logoClasses.get(`${config.id}|${normalize(brand)}`) || "logo-variados";
-  const sourceLogo = config.id === "farmacia" ? null : brandLogos.get(normalize(brand));
-  const logo = sourceLogo
+  const usePhxLogo = config.id === "emagrecedores" && normalize(brand) === "VARIADOS";
+  const sourceLogo = config.id === "farmacia" || usePhxLogo ? null : brandLogos.get(normalize(brand));
+  const logo = usePhxLogo
+    ? '<img class="cure-brand-logo" src="/PAGINAS/PHX%20BLACK.svg" alt="PHX" loading="lazy" decoding="async">'
+    : sourceLogo
     ? `<img class="cure-brand-logo" src="${escapeHtml(sourceLogo)}" alt="${escapeHtml(displayBrand)}" loading="lazy" decoding="async">`
     : `<span class="logo-img ${escapeHtml(logoClass)}" role="img" aria-label="${escapeHtml(displayBrand)}"></span>`;
   const productsByGroup = new Map();
