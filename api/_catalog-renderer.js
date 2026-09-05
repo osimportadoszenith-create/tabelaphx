@@ -37,7 +37,7 @@ const SYNC_STYLE = `
   .product-info .cure-visual-brand{display:block;margin-top:4px;color:#ff6b72;font-size:10px;line-height:1.3;letter-spacing:.08em;text-transform:uppercase}
   .product-info .cure-description{display:block;margin-top:4px;color:#a9a1a1;font-size:10px;line-height:1.45;letter-spacing:.03em;white-space:pre-line}
   .catalog-sync-warning{margin:10px 0;padding:9px 12px;border:1px solid rgba(224,26,34,.45);color:#ff8a8f;font-size:11px;text-align:center}
-  .brand-feature .cure-brand-logo{display:block;width:100%;height:108px;object-fit:contain}
+  .brand-card .brand-feature .cure-brand-logo{display:block;width:100%;height:100%;max-width:100%;max-height:100%;min-width:0;min-height:0;object-fit:contain}
 </style>`;
 
 const SYNC_SCRIPT = `
