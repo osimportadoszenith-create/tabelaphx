@@ -65,6 +65,19 @@ async function main() {
     "Somente a marca ONE1 deve ser removida; os demais produtos devem permanecer iguais.");
   const renderedHtml = applyCureCatalogToHtml(originalHtml, catalog);
   assert.doesNotMatch(renderedHtml, /ONE1/i, "ONE1 ainda aparece no catálogo PHX.");
+  assert(catalog.brandLogos.length > 0, "Logos da fonte ausentes.");
+  assert.match(renderedHtml, /class="cure-brand-logo"/);
+  assert.doesNotMatch(detailsBlock(renderedHtml, "farmacia"), /class="cure-brand-logo"/);
+  const changedLogos = catalog.brandLogos.map((logo) => ({
+    ...logo, imageUrl: "https://example.com/new-logo.webp",
+  }));
+  assert.notEqual(catalog.version, catalogVersion(catalog.products, catalog.freight, changedLogos),
+    "Uma alteração somente nas logos precisa atualizar a versão do catálogo.");
+  const logoChangedHtml = applyCureCatalogToHtml(originalHtml, { ...catalog, brandLogos: changedLogos });
+  assert.match(detailsBlock(logoChangedHtml, "premium"), /https:\/\/example.com\/new-logo.webp/);
+  assert.equal(detailsBlock(logoChangedHtml, "farmacia"), detailsBlock(renderedHtml, "farmacia"),
+    "As logos da categoria Farmácia devem permanecer fixas.");
+  assert.equal(detailsBlock(logoChangedHtml, "phenix"), detailsBlock(originalHtml, "phenix"));
   assert.equal(catalog.freight.length, 27);
   assert.equal(endpointFreightCount(renderedHtml), 27);
   for (const { uf, values } of catalog.freight) {
@@ -156,6 +169,7 @@ async function main() {
     "category",
     "group",
     "freight",
+    "brandLogos",
   ]);
 
   const selectedProduct = sourceProducts.find(

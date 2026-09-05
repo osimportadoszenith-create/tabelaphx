@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const { CURE_FREIGHT_URL, fetchCureFreight } = require("./_cure-freight");
 
 const CURE_CATALOG_URL = "https://curepharmaceuticalspy.com/";
+const CURE_BRANDS_URL = new URL("api/brands", CURE_CATALOG_URL).href;
 const MIN_EXPECTED_PRODUCTS = 100;
 const AVAILABILITY_SYNC_ENABLED = false;
 let cachedCatalog = null;
@@ -136,7 +137,28 @@ function isExcludedBrand(product) {
   );
 }
 
-function catalogVersion(products, freight = []) {
+async function fetchBrandLogos(fetchImpl, signal) {
+  const response = await fetchImpl(CURE_BRANDS_URL, { cache: "no-store", signal });
+  if (!response.ok) throw new Error(`Marcas CURE responderam HTTP ${response.status}.`);
+  const brands = await response.json();
+  if (!Array.isArray(brands)) throw new Error("Lista de marcas CURE inválida.");
+  return brands
+    .filter((brand) => !brand.isDeleted && !isExcludedBrand({ brand: brand.name }))
+    .map((brand) => {
+      let imageUrl = "";
+      if (brand.imageData) {
+        const url = new URL(brand.imageData, CURE_CATALOG_URL);
+        if (url.protocol === "https:") {
+          if (brand.updatedAt) url.searchParams.set("phxLogoVersion", brand.updatedAt);
+          imageUrl = url.href;
+        }
+      }
+      return { name: String(brand.name || "").trim(), imageUrl };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function catalogVersion(products, freight = [], brandLogos = []) {
   const relevantData = products.map((product) => {
     const fields = [
       product.id,
@@ -155,7 +177,7 @@ function catalogVersion(products, freight = []) {
 
   return crypto
     .createHash("sha256")
-    .update(JSON.stringify([relevantData, freight]))
+    .update(JSON.stringify([relevantData, freight, brandLogos]))
     .digest("hex")
     .slice(0, 16);
 }
@@ -184,12 +206,16 @@ async function fetchCureCatalog(options = {}) {
     const products = extractProductsFromHtml(await response.text())
       .map(normalizeProduct)
       .filter((product) => !isExcludedBrand(product));
-    const freight = await fetchCureFreight({ fetchImpl, signal: controller.signal });
+    const [freight, brandLogos] = await Promise.all([
+      fetchCureFreight({ fetchImpl, signal: controller.signal }),
+      fetchBrandLogos(fetchImpl, controller.signal),
+    ]);
 
     return {
       source: url,
       fetchedAt: new Date().toISOString(),
-      version: catalogVersion(products, freight),
+      version: catalogVersion(products, freight, brandLogos),
+      brandLogos,
       freightSource: CURE_FREIGHT_URL,
       freight,
       products,

@@ -34,6 +34,7 @@ module.exports = async function handler(request, response) {
         "category",
         "group",
         "freight",
+        "brandLogos",
       ],
     });
   } catch (error) {

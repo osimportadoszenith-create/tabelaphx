@@ -37,6 +37,7 @@ const SYNC_STYLE = `
   .product-info .cure-visual-brand{display:block;margin-top:4px;color:#ff6b72;font-size:10px;line-height:1.3;letter-spacing:.08em;text-transform:uppercase}
   .product-info .cure-description{display:block;margin-top:4px;color:#a9a1a1;font-size:10px;line-height:1.45;letter-spacing:.03em;white-space:pre-line}
   .catalog-sync-warning{margin:10px 0;padding:9px 12px;border:1px solid rgba(224,26,34,.45);color:#ff8a8f;font-size:11px;text-align:center}
+  .brand-feature .cure-brand-logo{display:block;width:100%;height:108px;object-fit:contain}
 </style>`;
 
 const SYNC_SCRIPT = `
@@ -175,7 +176,7 @@ function renderProduct(product) {
               </li>`;
 }
 
-function renderBrandCard(config, brand, products, logoClasses) {
+function renderBrandCard(config, brand, products, logoClasses, brandLogos) {
   const sourceDisplayBrand =
     products.find((product) => product.displayBrand)?.displayBrand || brand;
   const displayBrand =
@@ -183,6 +184,10 @@ function renderBrandCard(config, brand, products, logoClasses) {
     sourceDisplayBrand;
   const logoClass =
     logoClasses.get(`${config.id}|${normalize(brand)}`) || "logo-variados";
+  const sourceLogo = config.id === "farmacia" ? null : brandLogos.get(normalize(brand));
+  const logo = sourceLogo
+    ? `<img class="cure-brand-logo" src="${escapeHtml(sourceLogo)}" alt="${escapeHtml(displayBrand)}" loading="lazy" decoding="async">`
+    : `<span class="logo-img ${escapeHtml(logoClass)}" role="img" aria-label="${escapeHtml(displayBrand)}"></span>`;
   const productsByGroup = new Map();
 
   for (const product of products) {
@@ -218,7 +223,7 @@ function renderBrandCard(config, brand, products, logoClasses) {
             <span class="brand-kicker-name">${products.length} ${products.length === 1 ? "PRODUTO" : "PRODUTOS"} - ${escapeHtml(displayBrand)}</span>
           </div>
           <div class="brand-feature ${escapeHtml(logoClass)}">
-            <span class="logo-img ${escapeHtml(logoClass)}" role="img" aria-label="${escapeHtml(displayBrand)}"></span>
+            ${logo}
           </div>
           <ul class="product-list">
 ${rows}
@@ -226,7 +231,7 @@ ${rows}
         </section>`;
 }
 
-function renderCategory(config, products, logoClasses) {
+function renderCategory(config, products, logoClasses, brandLogos) {
   const productsByBrand = new Map();
 
   for (const product of products) {
@@ -244,15 +249,15 @@ function renderCategory(config, products, logoClasses) {
     brandCount: brandEntries.length,
     html: brandEntries
       .map(([brand, brandProducts]) =>
-        renderBrandCard(config, brand, brandProducts, logoClasses),
+        renderBrandCard(config, brand, brandProducts, logoClasses, brandLogos),
       )
       .join("\n"),
   };
 }
 
-function replaceCategory(html, config, products, logoClasses) {
+function replaceCategory(html, config, products, logoClasses, brandLogos) {
   const details = findDetailsBlock(html, config.id);
-  const rendered = renderCategory(config, products, logoClasses);
+  const rendered = renderCategory(config, products, logoClasses, brandLogos);
   let block = details.block;
 
   block = block.replace(
@@ -294,6 +299,7 @@ function applyCureCatalogToHtml(html, catalog) {
   }
 
   const logoClasses = extractLogoClasses(html);
+  const brandLogos = new Map((catalog.brandLogos || []).map(({ name, imageUrl }) => [normalize(name), imageUrl]));
   const activeProducts = catalog.products.filter((product) => !product.isDeleted);
   const supportedCategories = new Set(
     CATEGORY_CONFIG.flatMap((config) => config.sourceCategories.map(normalize)),
@@ -323,7 +329,7 @@ function applyCureCatalogToHtml(html, catalog) {
       throw new Error(`A categoria ${config.label} ficou vazia durante a sincronização.`);
     }
 
-    renderedHtml = replaceCategory(renderedHtml, config, products, logoClasses);
+    renderedHtml = replaceCategory(renderedHtml, config, products, logoClasses, brandLogos);
   }
 
   renderedHtml = applyCureFreightToHtml(renderedHtml, catalog.freight);
